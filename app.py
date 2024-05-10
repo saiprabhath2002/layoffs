@@ -23,9 +23,10 @@ import plotly.express as px
 def load_data():
     data_path = 'layoffs_data(4).csv'
     data = pd.read_csv(data_path)
-    data['Date'] = pd.to_datetime(data['Date'])
+    data['Date'] = pd.to_datetime(data['Date'], errors = 'coerce')
     data['YearMonth'] = data['Date'].dt.to_period('M').dt.to_timestamp()
     data['Year'] = data['Date'].dt.year
+    # data[data['Date'].notna()]
     return data
 
 data = load_data()
@@ -60,7 +61,7 @@ st.sidebar.title('Settings')
 st.sidebar.markdown('**Course Code:** ELL824')
 st.sidebar.markdown('**Group Members:**')
 st.sidebar.markdown('Bogam Sai Prabhath (2023AIB2079)')
-st.sidebar.markdown('Lakshay Kakkar')
+st.sidebar.markdown('Lakshay Kakkar (2023CSY7548)')
 
 st.sidebar.header('Filter Options')
 selected_years = st.sidebar.slider("Select the year range:", int(data['Date'].dt.year.min()), int(data['Date'].dt.year.max()), (int(data['Date'].dt.year.min()), int(data['Date'].dt.year.max())))
@@ -90,10 +91,10 @@ st.title('Interactive Layoff Analysis Dashboard', anchor='main-title')
 # st.write('Detailed charts and graphs can be placed here using the filtered data.')
 
 
-st.subheader('Average Percentage of Workforce Laid Off Over Time')
-percentage_over_time = data_filtered.groupby('YearMonth')['Percentage'].mean()
-fig = px.line(percentage_over_time, x=percentage_over_time.index, y='Percentage', labels={'index': 'Year-Month', 'Percentage': 'Average Percentage'})
-st.plotly_chart(fig)
+# st.subheader('Average Percentage of Workforce Laid Off Over Time')
+# percentage_over_time = data_filtered.groupby('YearMonth')['Percentage'].mean()
+# fig = px.line(percentage_over_time, x=percentage_over_time.index, y='Percentage', labels={'index': 'Year-Month', 'Percentage': 'Average Percentage'})
+# st.plotly_chart(fig)
 
 
 
@@ -123,10 +124,150 @@ industry_time_series = data_filtered.groupby(['YearMonth', 'Industry'])['Laid_Of
 fig = px.line(industry_time_series, labels={'value': 'Number of Layoffs', 'variable': 'Industry'})
 st.plotly_chart(fig)
 
+import streamlit as st
+import pandas as pd
+import plotly.express as px
 
-st.subheader('Sector-specific Layoffs Over Time')
+# Assuming data_filtered is already loaded and filtered accordingly
 
-# Define the industry categories
+# Calculate total layoffs by industry
+total_layoffs_by_industry = data_filtered.groupby('Industry')['Laid_Off_Count'].sum().sort_values()
+
+# Get the top 5 industries
+top_5_industries = total_layoffs_by_industry.nlargest(5).index.tolist()
+
+# Get the bottom 5 industries
+bottom_5_industries = total_layoffs_by_industry.nsmallest(5).index.tolist()
+
+# Filtering data for top 5 industries
+top_industries_data = data_filtered[data_filtered['Industry'].isin(top_5_industries)]
+top_industry_time_series = top_industries_data.groupby(['YearMonth', 'Industry'])['Laid_Off_Count'].sum().unstack(fill_value=0)
+
+# Filtering data for bottom 5 industries
+bottom_industries_data = data_filtered[data_filtered['Industry'].isin(bottom_5_industries)]
+bottom_industry_time_series = bottom_industries_data.groupby(['YearMonth', 'Industry'])['Laid_Off_Count'].sum().unstack(fill_value=0)
+
+# Plotting for top 5 industries
+st.subheader('Top 5 Industries by Layoffs Over Time')
+fig_top = px.line(top_industry_time_series, labels={'value': 'Number of Layoffs', 'variable': 'Industry'}, title='Top 5 Industries by Layoffs Over Time')
+st.plotly_chart(fig_top)
+
+# Plotting for bottom 5 industries
+st.subheader('Bottom 5 Industries by Layoffs Over Time')
+fig_bottom = px.line(bottom_industry_time_series, labels={'value': 'Number of Layoffs', 'variable': 'Industry'}, title='Bottom 5 Industries by Layoffs Over Time')
+st.plotly_chart(fig_bottom)
+
+
+# st.subheader('Layoffs Over Time by Industry')
+# industry_time_series = data_filtered.groupby(['YearMonth', 'Industry'])['Laid_Off_Count'].sum().unstack(fill_value=0)
+
+# # Create the figure
+# fig = go.Figure()
+
+# # Add traces for each industry
+# for industry, layoffs in industry_time_series.items():
+#     fig.add_trace(go.Scatter(
+#         x=layoffs.index, 
+#         y=layoffs,
+#         name=industry,
+#         line=dict(width=2),  # Normal width
+#         opacity=0.1,  # Make lines very dim by default
+#         hoverinfo='name+y',  # Show industry name and layoffs on hover
+#         mode='lines',
+#         hovertemplate='<b>%{name}</b><br>%{y}<extra></extra>',  # Custom hover template for clarity
+#     ))
+
+# # Adjust layout to improve hover effect
+# fig.update_traces(
+#     mode='lines',
+#     hoveron='points+fills',  # Allow hover effects on both points and line fills
+#     line=dict(color='rgba(30, 30, 30, 0.15)'),  # Default dim color
+#     hoverlabel=dict(bgcolor='white', font_size=14, font_family="Arial"),
+#     selected=dict(line_color='blue', line_width=3.5),  # Highlight style
+#     unselected=dict(line_color='rgba(30, 30, 30, 0.15)', line_width=2)  # Non-highlight style
+# )
+
+# fig.update_layout(
+#     hovermode='closest',
+#     title='Layoffs Over Time by Industry',
+#     xaxis_title='Date',
+#     yaxis_title='Number of Layoffs',
+#     legend_title='Industry',
+#     plot_bgcolor='white'
+# )
+
+# # Hover template adjustments
+# fig.update_layout(
+#     hoverlabel_align='right',
+# )
+
+# st.plotly_chart(fig, use_container_width=True)
+
+# Filtering data based on user selection in sidebar
+selected_years = st.sidebar.slider("Select the year range:", int(data['Date'].dt.year.min()), int(data['Date'].dt.year.max()), (int(data['Date'].dt.year.min()), int(data['Date'].dt.year.max())), key = 'year_range_slider')
+selected_countries = st.sidebar.multiselect('Select countries:', options=data['Country'].unique(), default=data['Country'].unique(), key = 'new')
+data_filtered = data[(data['Year'] >= selected_years[0]) & (data['Year'] <= selected_years[1]) & (data['Country'].isin(selected_countries))]
+
+# Heatmap of Layoffs by Month and Industry
+industry_time_series = data_filtered.groupby(['YearMonth', 'Industry'])['Laid_Off_Count'].sum().unstack(fill_value=0)
+fig_heatmap = px.imshow(industry_time_series, labels=dict(x="Month", y="Industry", color="Number of Layoffs"),
+                title="Heatmap of Layoffs by Month and Industry")
+st.plotly_chart(fig_heatmap)
+
+# Histogram of Funds Raised
+fig_histogram = px.histogram(data_filtered, x='Funds_Raised', color='Industry',
+                   title="Histogram of Funds Raised by Industry")
+st.plotly_chart(fig_histogram)
+
+# Box Plot of Layoffs by Company Stage
+fig_box = px.box(data_filtered, x='Stage', y='Laid_Off_Count', title="Box Plot of Layoffs by Company Stage")
+st.plotly_chart(fig_box)
+
+# Layoffs Trend Line with Moving Average
+data_filtered['MA_Layoffs'] = data_filtered['Laid_Off_Count'].rolling(window=12, min_periods=1).mean()
+fig_trend = px.line(data_filtered, x='YearMonth', y='MA_Layoffs', title="Layoffs Trend Line with Moving Average")
+st.plotly_chart(fig_trend)
+
+# Proportional Area Chart of Layoffs by Country
+country_layoffs = data_filtered.groupby('Country')['Laid_Off_Count'].sum().reset_index()
+fig_area = px.scatter(country_layoffs, x='Country', y='Laid_Off_Count', size='Laid_Off_Count', title="Proportional Area Chart of Layoffs by Country",
+                size_max=60)
+st.plotly_chart(fig_area)
+
+# st.subheader('Sector-specific Layoffs Over Time')
+
+# # Define the industry categories
+# tech_industries = ["AI", "Aerospace", "Crypto", "Data"]
+# service_industries = ["Consumer", "Education", "Finance", "Fitness", "Food", "HR", "Healthcare", "Legal", "Marketing", "Media", "Real Estate", "Recruiting", "Retail", "Sales", "Security", "Support", "Transportation", "Travel"]
+# manufacturing_industries = ["Construction", "Hardware", "Infrastructure", "Manufacturing"]
+
+# # Filter data for each category
+# tech_data = data_filtered[data_filtered['Industry'].isin(tech_industries)]
+# service_data = data_filtered[data_filtered['Industry'].isin(service_industries)]
+# manufacturing_data = data_filtered[data_filtered['Industry'].isin(manufacturing_industries)]
+
+# # Plotting each category
+# fig, axs = plt.subplots(3, 1, figsize=(12, 18), sharex=True)
+
+# tech_layoffs = tech_data.groupby('YearMonth')['Laid_Off_Count'].sum()
+# service_layoffs = service_data.groupby('YearMonth')['Laid_Off_Count'].sum()
+# manufacturing_layoffs = manufacturing_data.groupby('YearMonth')['Laid_Off_Count'].sum()
+
+# tech_layoffs.plot(ax=axs[0], title='Technology Sector Layoffs Over Time', marker='o', linestyle='-')
+# service_layoffs.plot(ax=axs[1], title='Service Sector Layoffs Over Time', marker='o', linestyle='-')
+# manufacturing_layoffs.plot(ax=axs[2], title='Manufacturing Sector Layoffs Over Time', marker='o', linestyle='-')
+
+# for ax in axs:
+#     ax.set_xlabel('Year-Month')
+#     ax.set_ylabel('Number of Layoffs')
+#     ax.xaxis.set_major_locator(mdates.YearLocator())
+#     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+#     plt.xticks(rotation=45)
+#     ax.legend(title='Industry', bbox_to_anchor=(1.05, 1), loc='upper left')
+
+# fig.tight_layout(pad=3.0)
+# st.pyplot(fig)
+
 tech_industries = ["AI", "Aerospace", "Crypto", "Data"]
 service_industries = ["Consumer", "Education", "Finance", "Fitness", "Food", "HR", "Healthcare", "Legal", "Marketing", "Media", "Real Estate", "Recruiting", "Retail", "Sales", "Security", "Support", "Transportation", "Travel"]
 manufacturing_industries = ["Construction", "Hardware", "Infrastructure", "Manufacturing"]
@@ -136,27 +277,24 @@ tech_data = data_filtered[data_filtered['Industry'].isin(tech_industries)]
 service_data = data_filtered[data_filtered['Industry'].isin(service_industries)]
 manufacturing_data = data_filtered[data_filtered['Industry'].isin(manufacturing_industries)]
 
-# Plotting each category
-fig, axs = plt.subplots(3, 1, figsize=(12, 18), sharex=True)
+# Plotting each category using Plotly
+# Tech Industries
+st.subheader('Tech Sector Layoffs Over Time')
+tech_layoffs = tech_data.groupby('YearMonth')['Laid_Off_Count'].sum().reset_index()
+fig_tech = px.line(tech_layoffs, x='YearMonth', y='Laid_Off_Count', title='Technology Sector Layoffs')
+st.plotly_chart(fig_tech)
 
-tech_layoffs = tech_data.groupby('YearMonth')['Laid_Off_Count'].sum()
-service_layoffs = service_data.groupby('YearMonth')['Laid_Off_Count'].sum()
-manufacturing_layoffs = manufacturing_data.groupby('YearMonth')['Laid_Off_Count'].sum()
+# Service Industries
+st.subheader('Service Sector Layoffs Over Time')
+service_layoffs = service_data.groupby('YearMonth')['Laid_Off_Count'].sum().reset_index()
+fig_service = px.line(service_layoffs, x='YearMonth', y='Laid_Off_Count', title='Service Sector Layoffs')
+st.plotly_chart(fig_service)
 
-tech_layoffs.plot(ax=axs[0], title='Technology Sector Layoffs Over Time', marker='o', linestyle='-')
-service_layoffs.plot(ax=axs[1], title='Service Sector Layoffs Over Time', marker='o', linestyle='-')
-manufacturing_layoffs.plot(ax=axs[2], title='Manufacturing Sector Layoffs Over Time', marker='o', linestyle='-')
-
-for ax in axs:
-    ax.set_xlabel('Year-Month')
-    ax.set_ylabel('Number of Layoffs')
-    ax.xaxis.set_major_locator(mdates.YearLocator())
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
-    plt.xticks(rotation=45)
-    ax.legend(title='Industry', bbox_to_anchor=(1.05, 1), loc='upper left')
-
-fig.tight_layout(pad=3.0)
-st.pyplot(fig)
+# Manufacturing Industries
+st.subheader('Manufacturing Sector Layoffs Over Time')
+manufacturing_layoffs = manufacturing_data.groupby('YearMonth')['Laid_Off_Count'].sum().reset_index()
+fig_manufacturing = px.line(manufacturing_layoffs, x='YearMonth', y='Laid_Off_Count', title='Manufacturing Sector Layoffs')
+st.plotly_chart(fig_manufacturing)
 
 
 
@@ -387,3 +525,60 @@ fig.update_yaxes(title_text="<b>Layoffs</b>", secondary_y=False)
 fig.update_yaxes(title_text="<b>Funds Raised (millions)</b>", secondary_y=True)
 
 st.plotly_chart(fig)
+
+
+
+
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+
+# Load and process data
+@st.cache_data
+def load_data():
+    data = pd.read_csv('layoffs_data(4).csv')
+    data['Date'] = pd.to_datetime(data['Date'])
+    return data
+
+data = load_data()
+data['Month'] = data['Date'].dt.to_period('M').dt.to_timestamp()  # Convert to Timestamp immediately
+
+# Time Series Plot of Layoffs
+st.subheader("Time Series Plot of Layoffs")
+monthly_layoffs = data.groupby('Month')['Laid_Off_Count'].sum().reset_index(name='Layoffs')
+fig1 = px.line(monthly_layoffs, x='Month', y='Layoffs', title='Monthly Layoffs Over Time')
+st.plotly_chart(fig1)
+
+# Bar Chart of Industries Affected
+st.subheader("Bar Chart of Industries Affected")
+# Sum layoffs by industry
+industry_layoffs = data.groupby('Industry')['Laid_Off_Count'].sum().sort_values(ascending=False)
+fig2 = px.bar(industry_layoffs, x=industry_layoffs.index, y=industry_layoffs.values, title='Layoffs by Industry')
+st.plotly_chart(fig2)
+
+# # (wrong code) Bar Chart of Industries Affected
+# st.subheader("Bar Chart of Industries Affected")
+# industry_layoffs = data['Industry'].value_counts()
+# fig2 = px.bar(industry_layoffs, x=industry_layoffs.index, y=industry_layoffs.values, title='Layoffs by Industry')
+# st.plotly_chart(fig2)
+
+# Funds Raised vs. Layoffs Scatter Plot
+st.subheader("Funds Raised vs. Layoffs Scatter Plot")
+fig3 = px.scatter(data, x='Funds_Raised', y='Percentage', color='Industry', title='Funds Raised vs. Layoff Rate',
+                  hover_data=['Company'])
+fig3.update_traces(marker=dict(size=10, opacity=0.5))
+st.plotly_chart(fig3)
+
+# Pie Chart of Company Stages
+st.subheader("Pie Chart of Company Stages")
+stage_counts = data['Stage'].value_counts()
+fig4 = px.pie(values=stage_counts.values, names=stage_counts.index, title='Company Stages')
+st.plotly_chart(fig4)
+
+# Stacked Bar Chart of Layoffs Over Time by Industry
+st.subheader("Stacked Bar Chart of Layoffs Over Time by Industry")
+layoffs_by_industry_time = pd.crosstab(data['Month'], data['Industry'])
+fig5 = px.bar(layoffs_by_industry_time, barmode='stack', title='Layoffs Over Time by Industry')
+st.plotly_chart(fig5)
+
+# st.write("Layoffs Dashboard Updated Successfully")
