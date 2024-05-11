@@ -58,6 +58,7 @@ st.sidebar.title('Settings')
 #     """
 # )
 
+st.sidebar.markdown('Instructor : Sougata  Mukherjea')
 st.sidebar.markdown('**Course Code:** ELL824')
 st.sidebar.markdown('**Group Members:**')
 st.sidebar.markdown('Bogam Sai Prabhath (2023AIB2079)')
