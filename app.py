@@ -410,7 +410,7 @@ country_layoffs['lat'] = country_layoffs['Country'].apply(lambda x: country_coor
 country_layoffs['lon'] = country_layoffs['Country'].apply(lambda x: country_coords[x]['lon'] if x in country_coords else None)
 country_layoffs.dropna(subset=['lat', 'lon'], inplace=True)
 fig = px.scatter_geo(country_layoffs, lat='lat', lon='lon', color='Laid_Off_Count', size='Laid_Off_Count',
-                     hover_name='Country', projection="natural earth")
+                     hover_name='Country', projection="natural earth",color_continuous_scale='Viridis' )
 st.plotly_chart(fig)
 
 
