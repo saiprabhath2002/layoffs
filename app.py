@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -53,14 +54,13 @@ st.markdown("""
 st.sidebar.title('Settings')
 # st.sidebar.info(
 #     """
-#     **Dark/Light Mode:** You can switch between dark and light mode by clicking on the hamburger menu 
+#     *Dark/Light Mode:* You can switch between dark and light mode by clicking on the hamburger menu 
 #     in the upper right → Settings → Theme.
 #     """
 # )
-
 st.sidebar.markdown('Instructor : Sougata  Mukherjea')
-st.sidebar.markdown('**Course Code:** ELL824')
-st.sidebar.markdown('**Group Members:**')
+st.sidebar.markdown('*Course Code:* ELL824')
+st.sidebar.markdown('*Group Members:*')
 st.sidebar.markdown('Bogam Sai Prabhath (2023AIB2079)')
 st.sidebar.markdown('Lakshay Kakkar (2023CSY7548)')
 
@@ -81,7 +81,7 @@ st.title('Interactive Layoff Analysis Dashboard', anchor='main-title')
 
 # Add more plots and analysis as needed below
 # Place to insert plots
-# Use `st.plotly_chart`, `st.pyplot`, etc., to add plots here.
+# Use st.plotly_chart, st.pyplot, etc., to add plots here.
 
 # Example Plot Insertion (Replace with actual plot calls)
 # st.subheader('More Detailed Analysis Layoff Trends ', anchor='layoff-trends')
@@ -107,12 +107,17 @@ st.plotly_chart(fig)
 
 
 
-st.subheader('Correlation Between Funds Raised and Layoffs')
-clean_data = data_filtered.dropna(subset=['Funds_Raised', 'Laid_Off_Count'])
-fig = px.scatter(clean_data, x='Funds_Raised', y='Laid_Off_Count', trendline="ols", log_x=True, labels={'Funds_Raised': 'Funds Raised (in millions $)', 'Laid_Off_Count': 'Number of Layoffs'})
+# st.subheader('Correlation Between Funds Raised and Layoffs')
+# clean_data = data_filtered.dropna(subset=['Funds_Raised', 'Laid_Off_Count'])
+# fig = px.scatter(clean_data, x='Funds_Raised', y='Laid_Off_Count', trendline="ols", log_x=True, labels={'Funds_Raised': 'Funds Raised (in millions $)', 'Laid_Off_Count': 'Number of Layoffs'})
+# st.plotly_chart(fig)
+
+# Processing data to find the top 10 companies with most layoffs
+top_companies = data.groupby("Company")['Laid_Off_Count'].sum().nlargest(10).reset_index()
+
+# Plotting the data using Plotly Express
+fig = px.bar(top_companies, x='Company', y='Laid_Off_Count', title="Layoffs by Company (Top 10)", labels={"Company": "Company Name", "Laid_": "Number of Layoffs"})
 st.plotly_chart(fig)
-
-
 
 st.subheader('Total Number of Layoffs by Company Stage')
 layoffs_by_stage = data_filtered.groupby('Stage')['Laid_Off_Count'].sum().sort_values(ascending=False)
@@ -129,7 +134,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# Assuming data_filtered is already loaded and filtered accordingly
 
 # Calculate total layoffs by industry
 total_layoffs_by_industry = data_filtered.groupby('Industry')['Laid_Off_Count'].sum().sort_values()
@@ -205,20 +209,25 @@ st.plotly_chart(fig_bottom)
 # st.plotly_chart(fig, use_container_width=True)
 
 # Filtering data based on user selection in sidebar
-selected_years = st.sidebar.slider("Select the year range:", int(data['Date'].dt.year.min()), int(data['Date'].dt.year.max()), (int(data['Date'].dt.year.min()), int(data['Date'].dt.year.max())), key = 'year_range_slider')
-selected_countries = st.sidebar.multiselect('Select countries:', options=data['Country'].unique(), default=data['Country'].unique(), key = 'new')
-data_filtered = data[(data['Year'] >= selected_years[0]) & (data['Year'] <= selected_years[1]) & (data['Country'].isin(selected_countries))]
+# selected_years = st.sidebar.slider("Select the year range:", int(data['Date'].dt.year.min()), int(data['Date'].dt.year.max()), (int(data['Date'].dt.year.min()), int(data['Date'].dt.year.max())), key = 'year_range_slider')
+# selected_countries = st.sidebar.multiselect('Select countries:', options=data['Country'].unique(), default=data['Country'].unique(), key = 'new')
+# data_filtered = data[(data['Year'] >= selected_years[0]) & (data['Year'] <= selected_years[1]) & (data['Country'].isin(selected_countries))]
 
 # Heatmap of Layoffs by Month and Industry
 industry_time_series = data_filtered.groupby(['YearMonth', 'Industry'])['Laid_Off_Count'].sum().unstack(fill_value=0)
+color_scale = [
+    [0.0, "blue"],  # Blue at the smallest value
+    [0.5, "grey"],    # Red at the largest value
+    [1.0, "red"]
+]
 fig_heatmap = px.imshow(industry_time_series, labels=dict(x="Month", y="Industry", color="Number of Layoffs"),
-                title="Heatmap of Layoffs by Month and Industry")
+                title="Heatmap of Layoffs by Month and Industry", color_continuous_scale = 'Plasma')
 st.plotly_chart(fig_heatmap)
 
-# Histogram of Funds Raised
-fig_histogram = px.histogram(data_filtered, x='Funds_Raised', color='Industry',
-                   title="Histogram of Funds Raised by Industry")
-st.plotly_chart(fig_histogram)
+# # Histogram of Funds Raised
+# fig_histogram = px.histogram(data_filtered, x='Funds_Raised', color='Industry',
+#                    title="Histogram of Funds Raised by Industry")
+# st.plotly_chart(fig_histogram)
 
 # Box Plot of Layoffs by Company Stage
 fig_box = px.box(data_filtered, x='Stage', y='Laid_Off_Count', title="Box Plot of Layoffs by Company Stage")
@@ -299,10 +308,10 @@ st.plotly_chart(fig_manufacturing)
 
 
 
-st.subheader('Relationship Between Layoff Count and Percentage of Workforce Laid Off')
-clean_data = data_filtered.dropna(subset=['Laid_Off_Count', 'Percentage'])
-fig = px.scatter(clean_data, x='Laid_Off_Count', y='Percentage', log_x=True, labels={'Laid_Off_Count': 'Number of Layoffs', 'Percentage': 'Percentage of Workforce Laid Off'})
-st.plotly_chart(fig)
+# st.subheader('Relationship Between Layoff Count and Percentage of Workforce Laid Off')
+# clean_data = data_filtered.dropna(subset=['Laid_Off_Count', 'Percentage'])
+# fig = px.scatter(clean_data, x='Laid_Off_Count', y='Percentage', log_x=True, labels={'Laid_Off_Count': 'Number of Layoffs', 'Percentage': 'Percentage of Workforce Laid Off'})
+# st.plotly_chart(fig)
 
 
 
@@ -411,7 +420,7 @@ country_layoffs['lat'] = country_layoffs['Country'].apply(lambda x: country_coor
 country_layoffs['lon'] = country_layoffs['Country'].apply(lambda x: country_coords[x]['lon'] if x in country_coords else None)
 country_layoffs.dropna(subset=['lat', 'lon'], inplace=True)
 fig = px.scatter_geo(country_layoffs, lat='lat', lon='lon', color='Laid_Off_Count', size='Laid_Off_Count',
-                     hover_name='Country', projection="natural earth",color_continuous_scale='Viridis' )
+                     hover_name='Country', projection="natural earth")
 st.plotly_chart(fig)
 
 
@@ -543,7 +552,6 @@ def load_data():
 
 data = load_data()
 data['Month'] = data['Date'].dt.to_period('M').dt.to_timestamp()  # Convert to Timestamp immediately
-
 # Time Series Plot of Layoffs
 st.subheader("Time Series Plot of Layoffs")
 monthly_layoffs = data.groupby('Month')['Laid_Off_Count'].sum().reset_index(name='Layoffs')
